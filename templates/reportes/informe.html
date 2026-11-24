@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-3 gap-2">
+  <div><h3 class="mb-0">{{ titulo }}</h3><div class="text-muted small">{{ definicion.descripcion }}</div></div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-danger" href="?{% if querystring %}{{ querystring }}&{% endif %}formato=pdf"><i class="bi bi-filetype-pdf"></i> PDF</a>
+    <a class="btn btn-success" href="?{% if querystring %}{{ querystring }}&{% endif %}formato=xlsx"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+    <a class="btn btn-outline-secondary" href="{% url 'reportes:indice' %}">Reportes</a>
+  </div>
+</div>
+{% if form %}
+<form method="get" class="card card-body mb-3 py-2"><div class="row g-2 align-items-end">
+  {% for campo in form.visible_fields %}<div class="col-md-3"><label class="form-label small mb-0">{{ campo.label }}</label>{{ campo }}</div>{% endfor %}
+  <div class="col-auto"><button class="btn btn-danger"><i class="bi bi-funnel"></i> Aplicar</button> <a class="btn btn-outline-secondary" href="?">Limpiar</a></div>
+</div></form>
+{% endif %}
+<div class="card"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
+  <thead class="table-light"><tr>{% for e in encabezados %}<th>{{ e }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for fila in filas %}<tr>{% for celda_valor in fila %}<td>{% if celda_valor is None %}—{% else %}{{ celda_valor|celda }}{% endif %}</td>{% endfor %}</tr>
+  {% empty %}<tr><td colspan="{{ encabezados|length }}" class="text-center text-muted py-4">Sin registros.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+<p class="text-muted small mt-2">Mostrando {{ filas|length }} de {{ total }} registros{% if total > limite %} (la exportación incluye todos){% endif %}.</p>
+{% endblock %}

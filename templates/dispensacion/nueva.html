@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<h3 class="mb-3">Nueva dispensación</h3>
+<div class="card mb-3"><div class="card-body">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-6"><label class="form-label">Buscar paciente por RUT / DNI o nombre</label>
+      <input type="text" name="documento" value="{{ texto }}" class="form-control" placeholder="12.345.678-5" autofocus></div>
+    <div class="col-auto"><button class="btn btn-danger"><i class="bi bi-search"></i> Buscar</button></div>
+    {% if perm.gestionar_pacientes %}<div class="col-auto"><a class="btn btn-outline-secondary" href="{% url 'pacientes:crear' %}">Registrar paciente nuevo</a></div>{% endif %}
+  </form>
+</div></div>
+
+{% if texto and not paciente and not resultados %}<div class="alert alert-warning">No se encontró ningún paciente con «{{ texto }}». Verifique el RUT o registre al paciente.</div>{% endif %}
+
+{% if resultados %}
+<div class="card mb-3"><div class="card-header fw-bold">Coincidencias</div><ul class="list-group list-group-flush">
+  {% for p in resultados %}<li class="list-group-item d-flex justify-content-between"><span>{{ p.nombre_completo }} — {{ p.documento }}</span><a class="btn btn-sm btn-outline-danger" href="?documento={{ p.documento }}">Seleccionar</a></li>{% endfor %}
+</ul></div>
+{% endif %}
+
+{% if paciente %}
+<div class="card"><div class="card-body">
+  <div class="d-flex justify-content-between flex-wrap gap-2">
+    <div><h5 class="mb-0">{{ paciente.nombre_completo }}</h5><div class="text-muted small">{{ paciente.documento }} · {{ paciente.get_prevision_display }}
+      {% if not paciente.activo %}· <span class="badge text-bg-secondary">Inactivo</span>{% endif %}</div></div>
+    <div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="{% url 'pacientes:detalle' paciente.pk %}">Ficha</a>
+      <a class="btn btn-danger" href="{% url 'dispensacion:receta_crear' paciente.pk %}"><i class="bi bi-plus-lg"></i> Registrar receta</a></div>
+  </div>
+  <hr>
+  <h6>Recetas del paciente</h6>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead class="table-light"><tr><th>N°</th><th>Emisión</th><th>Vence</th><th>Modalidad</th><th>Programa</th><th>Estado</th><th></th></tr></thead><tbody>
+  {% for r in recetas %}<tr><td>{{ r.numero }}</td><td>{{ r.fecha_emision|date:"d/m/Y" }}</td><td>{{ r.fecha_vencimiento|date:"d/m/Y" }}</td><td>{{ r.get_modalidad_display }}</td><td>{{ r.programa|default:"Estándar" }}</td><td>{{ r.estado_texto|insignia }}</td>
+  <td class="text-end">{% if r.dispensable %}<a class="btn btn-sm btn-danger" href="{% url 'dispensacion:dispensar' r.pk %}"><i class="bi bi-capsule"></i> Dispensar</a>{% endif %}
+  <a class="btn btn-sm btn-outline-secondary" href="{% url 'dispensacion:receta_detalle' r.pk %}">Ver</a></td></tr>
+  {% empty %}<tr><td colspan="7" class="text-center text-muted py-3">El paciente no tiene recetas registradas. Registre la receta para poder dispensar.</td></tr>{% endfor %}</tbody></table></div>
+</div></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div><h3 class="mb-0">Receta {{ receta.numero }} {{ receta.estado_texto|insignia }}</h3>
+    <div class="text-muted">{{ receta.paciente.nombre_completo }} ({{ receta.paciente.documento }})</div></div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if perm.dispensar and receta.dispensable %}<a class="btn btn-danger" href="{% url 'dispensacion:dispensar' receta.pk %}"><i class="bi bi-capsule"></i> Dispensar</a>{% endif %}
+    {% if receta.archivo %}<a class="btn btn-outline-secondary" target="_blank" href="{% url 'dispensacion:receta_archivo' receta.pk %}"><i class="bi bi-paperclip"></i> Ver archivo</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="{% url 'pacientes:detalle' receta.paciente.pk %}">Ficha del paciente</a>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header fw-bold">Validación de la prescripción</div><div class="card-body"><dl class="row mb-0">
+    <dt class="col-5">Tipo</dt><dd class="col-7">{{ receta.get_tipo_display }}</dd>
+    <dt class="col-5">Modalidad</dt><dd class="col-7">{{ receta.get_modalidad_display }}</dd>
+    <dt class="col-5">Saldo</dt><dd class="col-7">{% if receta.control_saldo %}Con control de saldo{% else %}Sin control de saldo{% endif %}</dd>
+    <dt class="col-5">Emisión</dt><dd class="col-7">{{ receta.fecha_emision|date:"d/m/Y" }}</dd>
+    <dt class="col-5">Vigencia hasta</dt><dd class="col-7">{{ receta.fecha_vencimiento|date:"d/m/Y" }} ({{ receta.vigencia_dias }} días)</dd>
+    <dt class="col-5">Médico</dt><dd class="col-7">{{ receta.medico_nombre }}<br><small class="text-muted">RUT {{ receta.medico_rut }}</small></dd>
+    <dt class="col-5">Establecimiento</dt><dd class="col-7">{{ receta.establecimiento_emisor|default:"—" }}</dd>
+    <dt class="col-5">Programa</dt><dd class="col-7">{{ receta.programa|default:"Atención estándar" }}</dd>
+    <dt class="col-5">Observaciones</dt><dd class="col-7">{{ receta.observaciones|default:"—" }}</dd>
+    <dt class="col-5">Registrada por</dt><dd class="col-7">{{ receta.registrada_por.nombre_completo }}</dd>
+    {% if receta.motivo_anulacion %}<dt class="col-5">Motivo anulación</dt><dd class="col-7">{{ receta.motivo_anulacion }}</dd>{% endif %}
+  </dl></div></div></div>
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header fw-bold">Medicamentos y saldo</div><div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+      <thead class="table-light"><tr><th>Producto</th><th class="text-end">Prescrito</th><th class="text-end">Entregado</th><th class="text-end">Saldo</th><th>Indicación</th></tr></thead><tbody>
+      {% for i in items %}<tr><td>{{ i.producto }} {% if i.producto.es_controlado %}<span class="badge text-bg-danger">Controlado</span>{% endif %}</td><td class="text-end">{{ i.cantidad_prescrita }}</td><td class="text-end">{{ i.cantidad_dispensada }}</td><td class="text-end fw-bold">{{ i.saldo }}</td><td>{{ i.indicacion }}</td></tr>{% endfor %}
+    </tbody></table></div></div>
+    <div class="card"><div class="card-header fw-bold">Entregas realizadas</div><div class="table-responsive"><table class="table table-sm mb-0">
+      <thead class="table-light"><tr><th>N°</th><th>Fecha</th><th>Retira</th><th>Dispensó</th><th></th></tr></thead><tbody>
+      {% for d in dispensaciones %}<tr><td>{{ d.pk }}</td><td>{{ d.fecha|date:"d/m/Y H:i" }}</td><td>{{ d.quien_retira }}</td><td>{{ d.dispensado_por.username }}</td><td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'dispensacion:detalle' d.pk %}">Ver</a></td></tr>
+      {% empty %}<tr><td colspan="5" class="text-center text-muted py-3">Sin entregas.</td></tr>{% endfor %}</tbody></table></div></div>
+    {% if perm.autorizar and receta.estado == 'VIGENTE' %}
+    <form method="post" action="{% url 'dispensacion:receta_anular' receta.pk %}" class="card card-body mt-3 border-danger">{% csrf_token %}
+      <div class="row g-2 align-items-end"><div class="col"><label class="form-label small">Anular receta (Q.F.) — motivo</label><input name="motivo" class="form-control" required maxlength="200"></div>
+      <div class="col-auto"><button class="btn btn-outline-danger" onclick="return confirm('¿Anular esta receta?')">Anular</button></div></div></form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div><h3 class="mb-0">Pedido {{ pedido.numero }} {{ pedido.estado_texto|insignia }}
+      {% if pedido.prioridad == 'URGENTE' %}<span class="badge text-bg-danger">Urgente</span>{% endif %}</h3>
+    <div class="text-muted">{{ pedido.proveedor.nombre }} · creado por {{ pedido.creado_por.nombre_completo }} el {{ pedido.fecha|date:"d/m/Y H:i" }}
+      {% if pedido.origen_sugerencia %}· <span class="badge text-bg-info">Generado por abastecimiento inteligente</span>{% endif %}</div></div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" target="_blank" href="{% url 'pedidos:orden' pedido.pk %}"><i class="bi bi-printer"></i> Imprimir orden</a>
+    {% if pedido.estado == 'BORRADOR' and perm.gestionar_pedidos %}
+      <a class="btn btn-outline-primary" href="{% url 'pedidos:editar' pedido.pk %}"><i class="bi bi-pencil"></i> Editar</a>
+      <form method="post" action="{% url 'pedidos:eliminar' pedido.pk %}" onsubmit="return confirm('¿Eliminar este borrador?')">{% csrf_token %}<button class="btn btn-outline-danger"><i class="bi bi-trash"></i> Eliminar</button></form>
+    {% endif %}
+    {% if pedido.estado == 'BORRADOR' and perm.autorizar %}
+      <form method="post" action="{% url 'pedidos:enviar' pedido.pk %}" onsubmit="return confirm('¿Autorizar y enviar el pedido al proveedor?')">{% csrf_token %}<button class="btn btn-danger"><i class="bi bi-send-check"></i> Autorizar y enviar</button></form>
+    {% endif %}
+    {% if pedido.abierto and perm.gestionar_pedidos %}
+      <a class="btn btn-danger" href="{% url 'pedidos:recepcionar' pedido.pk %}"><i class="bi bi-box-arrow-in-down"></i> Recepcionar mercadería</a>
+    {% endif %}
+    <a class="btn btn-outline-secondary" href="{% url 'pedidos:lista' %}">Volver</a>
+  </div>
+</div>
+
+{% if pedido.estado == 'BORRADOR' %}
+<div class="alert alert-secondary py-2"><i class="bi bi-info-circle"></i> Borrador: aún no se envía. Requiere la autorización del Químico Farmacéutico.</div>
+{% endif %}
+{% if pedido.atraso_dias %}
+<div class="alert alert-warning py-2"><i class="bi bi-exclamation-triangle"></i> Pedido atrasado <strong>{{ pedido.atraso_dias }} días</strong> (entrega estimada {{ pedido.fecha_entrega_estimada|date:"d/m/Y" }}). Contacte al proveedor.</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header fw-bold">Proveedor y plazos</div><div class="card-body"><dl class="row mb-0">
+    <dt class="col-5">Proveedor</dt><dd class="col-7">{{ pedido.proveedor.nombre }}<br><small class="text-muted">{{ pedido.proveedor.get_tipo_display }}</small></dd>
+    <dt class="col-5">Contacto</dt><dd class="col-7">{{ pedido.proveedor.contacto|default:"—" }}<br><small>{{ pedido.proveedor.telefono }} {{ pedido.proveedor.email }}</small></dd>
+    <dt class="col-5">Enviado</dt><dd class="col-7">{% if pedido.fecha_envio %}{{ pedido.fecha_envio|date:"d/m/Y H:i" }} · autorizó {{ pedido.aprobado_por.nombre_completo }}{% else %}—{% endif %}</dd>
+    <dt class="col-5">Entrega estimada</dt><dd class="col-7">{{ pedido.fecha_entrega_estimada|date:"d/m/Y"|default:"—" }}</dd>
+    <dt class="col-5">Avance</dt><dd class="col-7">{{ pedido.unidades_recibidas }} de {{ pedido.unidades_pedidas }} unidades ({{ pedido.avance_texto }})</dd>
+    {% if pedido.observacion %}<dt class="col-5">Observaciones</dt><dd class="col-7">{{ pedido.observacion }}</dd>{% endif %}
+    {% if pedido.motivo_cierre %}<dt class="col-5">Motivo de cierre</dt><dd class="col-7">{{ pedido.motivo_cierre }}</dd>{% endif %}
+    {% if pedido.motivo_anulacion %}<dt class="col-5">Motivo de anulación</dt><dd class="col-7">{{ pedido.motivo_anulacion }}</dd>{% endif %}
+  </dl></div></div></div>
+  <div class="col-lg-7"><div class="card h-100"><div class="card-header fw-bold">Productos</div><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead class="table-light"><tr><th>Producto</th><th class="text-end">Pedido</th><th class="text-end">Recibido</th><th class="text-end">Pendiente</th></tr></thead><tbody>
+    {% for i in items %}<tr><td>{{ i.producto }} {% if i.producto.es_controlado %}<span class="badge text-bg-danger">Controlado</span>{% endif %}</td>
+      <td class="text-end">{{ i.cantidad_pedida }}</td><td class="text-end">{{ i.cantidad_recibida }}</td><td class="text-end fw-bold">{{ i.pendiente }}</td></tr>{% endfor %}
+  </tbody></table></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header fw-bold">Recepciones registradas</div>
+  {% for r in recepciones %}
+  <div class="border-bottom p-3">
+    <div class="small text-muted">{{ r.fecha|date:"d/m/Y H:i" }} · guía/factura <strong>{{ r.documento_ref }}</strong> · recibió {{ r.recibido_por.nombre_completo }} · ingreso a {{ r.ubicacion|lower }}{% if r.observacion %} · {{ r.observacion }}{% endif %}</div>
+    <ul class="mb-0 small">{% for it in r.items.all %}<li>{{ it.producto.nombre }} × {{ it.cantidad }} — lote {{ it.lote.numero_lote }} (vence {{ it.lote.fecha_vencimiento|date:"d/m/Y" }})</li>{% endfor %}</ul>
+  </div>
+  {% empty %}<div class="p-3 text-muted small">Aún no se ha recibido mercadería de este pedido.</div>{% endfor %}
+</div>
+
+{% if perm.autorizar and pedido.estado == 'ENVIADO' or perm.autorizar and pedido.estado == 'BORRADOR' %}
+<form method="post" action="{% url 'pedidos:anular' pedido.pk %}" class="card card-body border-danger mb-3">{% csrf_token %}
+  <div class="row g-2 align-items-end"><div class="col"><label class="form-label small">Anular pedido (Q.F.) — motivo</label><input name="motivo" class="form-control" maxlength="250" required></div>
+  <div class="col-auto"><button class="btn btn-outline-danger" onclick="return confirm('¿Anular este pedido?')">Anular</button></div></div></form>
+{% endif %}
+{% if perm.autorizar and pedido.estado == 'PARCIAL' %}
+<form method="post" action="{% url 'pedidos:cerrar' pedido.pk %}" class="card card-body border-warning mb-3">{% csrf_token %}
+  <div class="row g-2 align-items-end"><div class="col"><label class="form-label small">Cerrar con faltantes (Q.F.) — motivo (ej. proveedor no entregará el saldo)</label><input name="motivo" class="form-control" maxlength="250" required></div>
+  <div class="col-auto"><button class="btn btn-outline-warning" onclick="return confirm('¿Cerrar el pedido sin esperar el saldo pendiente?')">Cerrar pedido</button></div></div></form>
+{% endif %}
+{% endblock %}

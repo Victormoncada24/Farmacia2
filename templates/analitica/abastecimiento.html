@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-3 gap-2">
+  <div><h3 class="mb-0"><i class="bi bi-graph-up-arrow text-danger"></i> {{ titulo }}</h3>
+    <div class="text-muted small">Predice cuándo se agota cada producto, cuánto se perdería por vencimiento (simulación FEFO) y cuánto pedir.
+    Consumo medido sobre {{ dias }} días (dispensaciones + reposición de carros); plazo de reposición {{ lead_time }} días.</div></div>
+  {% if perm.ver_reportes %}<div class="d-flex gap-2">
+    <a class="btn btn-danger" href="{% url 'reportes:informe' 'abastecimiento-inteligente' %}?formato=pdf"><i class="bi bi-filetype-pdf"></i> PDF</a>
+    <a class="btn btn-success" href="{% url 'reportes:informe' 'abastecimiento-inteligente' %}?formato=xlsx"><i class="bi bi-file-earmark-excel"></i> Excel</a></div>{% endif %}
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Quiebres / críticos</div>
+    <div class="fs-2 fw-bold text-danger">{{ resumen.quiebres }} / {{ resumen.criticos }}</div><div class="small text-muted">cobertura menor a {{ lead_time }} días</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Unidades en riesgo de vencer</div>
+    <div class="fs-2 fw-bold text-warning">{{ resumen.unidades_en_riesgo }}</div><div class="small text-muted">{{ resumen.productos_con_riesgo }} productos · {{ resumen.unidades_vencidas }} ya vencidas</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Productos en atención</div>
+    <div class="fs-2 fw-bold">{{ resumen.atencion }}</div><div class="small text-muted">cobertura menor a {{ lead_time }}×2 días o con riesgo</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Pedido sugerido</div>
+    <div class="fs-2 fw-bold">{{ resumen.pedido_total_unidades }} <span class="fs-6">u.</span></div><div class="small text-muted">{{ resumen.productos_a_pedir }} productos · objetivo {{ dias_objetivo }} días</div></div></div></div>
+</div>
+
+{% if perm.gestionar_pedidos and resumen.productos_a_pedir %}
+<div class="card mb-3 border-danger"><div class="card-body">
+  <div class="fw-bold mb-2"><i class="bi bi-truck text-danger"></i> Convertir la sugerencia en un pedido a proveedor</div>
+  {% if proveedores %}
+  <form method="post" action="{% url 'pedidos:desde_sugerencia' %}" class="row g-2 align-items-end">{% csrf_token %}
+    <input type="hidden" name="dias" value="{{ dias }}"><input type="hidden" name="lead_time" value="{{ lead_time }}"><input type="hidden" name="dias_objetivo" value="{{ dias_objetivo }}">
+    <div class="col-lg-4"><label class="form-label small mb-0">Proveedor</label>
+      <select name="proveedor" class="form-select" required>{% for p in proveedores %}<option value="{{ p.pk }}">{{ p.nombre }} (plazo {{ p.plazo_entrega_dias }} d)</option>{% endfor %}</select></div>
+    <div class="col-lg-4"><label class="form-label small mb-0">Incluir</label>
+      <select name="alcance" class="form-select"><option value="todos">Todos los productos con pedido sugerido ({{ resumen.productos_a_pedir }})</option><option value="criticos">Solo quiebres y críticos</option></select></div>
+    <div class="col-auto"><button class="btn btn-danger"><i class="bi bi-file-earmark-plus"></i> Crear borrador de pedido</button></div>
+    <div class="col-12 small text-muted">Se crea un borrador editable. Descuenta lo que ya viene en camino y requiere la autorización del Químico Farmacéutico para enviarse.</div>
+  </form>
+  {% else %}
+  <div class="small text-muted">Aún no hay proveedores activos. <a href="{% url 'pedidos:proveedor_lista' %}">Registre uno</a> para poder generar pedidos.</div>
+  {% endif %}
+</div></div>
+{% endif %}
+
+<form method="get" class="card card-body mb-3 py-2"><div class="row g-2 align-items-end">
+  {% for campo in form.visible_fields %}
+    <div class="col-md-2">{% if campo.widget_type == 'checkbox' %}<div class="form-check mt-4">{{ campo }} <label class="form-check-label small" for="{{ campo.id_for_label }}">{{ campo.label }}</label></div>
+    {% else %}<label class="form-label small mb-0" for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}{% endif %}</div>
+  {% endfor %}
+  <div class="col-auto"><button class="btn btn-danger"><i class="bi bi-calculator"></i> Recalcular</button> <a class="btn btn-outline-secondary" href="?">Restablecer</a></div>
+</div></form>
+
+{% if grafico.labels %}
+<div class="card mb-3"><div class="card-header fw-bold">Productos con menor cobertura (días)</div><div class="card-body"><canvas id="g-cobertura" height="90"></canvas></div></div>
+{% endif %}
+
+<div class="card"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
+  <thead class="table-light"><tr><th>Producto</th><th>Categoría</th><th title="Clasificación ABC por consumo">ABC</th><th class="text-end">Consumo/día</th><th class="text-end">Stock</th>
+    <th class="text-end">Cobertura (días)</th><th>Quiebre estimado</th><th class="text-end">En riesgo de vencer</th><th class="text-end">Vencidas</th><th class="text-end" title="Unidades de pedidos enviados y aún no recibidos">En tránsito</th><th class="text-end">Pedido sugerido</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td><a href="{% url 'inventario:producto_detalle' f.producto.pk %}">{{ f.producto }}</a></td>
+      <td class="small">{{ f.categoria }}</td>
+      <td><span class="badge text-bg-{% if f.abc == 'A' %}danger{% elif f.abc == 'B' %}warning{% else %}secondary{% endif %}">{{ f.abc }}</span></td>
+      <td class="text-end">{{ f.consumo_diario|floatformat:1 }}</td>
+      <td class="text-end">{{ f.stock }}</td>
+      <td class="text-end fw-bold">{{ f.cobertura_texto }}</td>
+      <td>{{ f.fecha_quiebre|date:"d/m/Y"|default:"—" }}</td>
+      <td class="text-end" {% if f.riesgo_texto %}title="{{ f.riesgo_texto }}"{% endif %}>{% if f.en_riesgo %}<span class="text-warning fw-bold">{{ f.en_riesgo }}</span> <i class="bi bi-info-circle small text-muted"></i>{% else %}0{% endif %}</td>
+      <td class="text-end">{% if f.vencidas %}<span class="text-danger fw-bold">{{ f.vencidas }}</span>{% else %}0{% endif %}</td>
+      <td class="text-end">{% if f.en_transito %}<span class="text-primary fw-bold">{{ f.en_transito }}</span>{% else %}—{% endif %}</td>
+      <td class="text-end">{% if f.pedido %}<strong>{{ f.pedido }}</strong>{% else %}—{% endif %}</td>
+      <td>{{ f.estado_texto|insignia }}</td>
+    </tr>
+  {% empty %}<tr><td colspan="12" class="text-center text-muted py-4">Sin productos para los filtros seleccionados.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+<p class="text-muted small mt-2"><strong>Cómo se calcula:</strong> consumo diario = unidades salidas ÷ días del período · cobertura = stock utilizable ÷ consumo diario ·
+riesgo de vencer = simulación FEFO: cada lote solo puede absorber la demanda que ocurra antes de su vencimiento, descontando lo que absorben los lotes que vencen antes (se evalúan lotes que vencen en ≤180 días) ·
+pedido = max(stock objetivo, consumo × cobertura objetivo) − stock aprovechable − unidades ya en tránsito · ABC = Pareto por unidades consumidas (A ≈ 80 %).</p>
+{% endblock %}
+{% block extra_js %}
+{% if grafico.labels %}
+{{ grafico|json_script:"datos-cobertura" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  var datos = JSON.parse(document.getElementById('datos-cobertura').textContent);
+  var lead = {{ lead_time }};
+  new Chart(document.getElementById('g-cobertura'), {
+    type: 'bar',
+    data: { labels: datos.labels, datasets: [{ label: 'Días de cobertura', data: datos.valores,
+      backgroundColor: datos.valores.map(function (v) { return v < lead ? '#c8102e' : (v < lead * 2 ? '#f2a900' : '#58595b'); }) }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

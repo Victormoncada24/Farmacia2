@@ -1,0 +1,43 @@
+# Entorno local con PostgreSQL real (igual al de producción en RDS).
+#   docker compose up --build
+# Luego: docker compose exec web python manage.py cargar_datos_demo
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: farmacia
+      POSTGRES_USER: farmacia
+      POSTGRES_PASSWORD: farmacia_local
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farmacia -d farmacia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    user: root                      # solo desarrollo: permite escribir las migraciones en su carpeta
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_DEBUG: "True"
+      DJANGO_SECRET_KEY: "desarrollo-local-no-usar-en-produccion"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+      DB_ENGINE: postgres
+      DB_NAME: farmacia
+      DB_USER: farmacia
+      DB_PASSWORD: farmacia_local
+      DB_HOST: db
+      DB_PORT: "5432"
+      AUTO_MAKEMIGRATIONS: "1"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+volumes:
+  pgdata:

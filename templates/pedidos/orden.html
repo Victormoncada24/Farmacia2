@@ -1,0 +1,21 @@
+{% extends 'core/base_imprimir.html' %}
+{% block titulo %}Orden de pedido {{ pedido.numero }}{% endblock %}
+{% block doc_titulo %}ORDEN DE PEDIDO A PROVEEDOR{% endblock %}
+{% block doc_numero %}N° {{ pedido.numero }} · {{ pedido.fecha|date:"d/m/Y H:i" }}{% endblock %}
+{% block cuerpo %}
+<table class="table table-sm table-borderless mb-3">
+  <tr><th style="width:22%">Proveedor</th><td>{{ pedido.proveedor.nombre }}</td><th style="width:16%">RUT</th><td>{{ pedido.proveedor.rut|default:"—" }}</td></tr>
+  <tr><th>Contacto</th><td>{{ pedido.proveedor.contacto|default:"—" }} {{ pedido.proveedor.telefono }}</td><th>Correo</th><td>{{ pedido.proveedor.email|default:"—" }}</td></tr>
+  <tr><th>Prioridad</th><td>{{ pedido.get_prioridad_display }}</td><th>Estado</th><td>{{ pedido.estado_texto }}</td></tr>
+  <tr><th>Entrega estimada</th><td>{{ pedido.fecha_entrega_estimada|date:"d/m/Y"|default:"—" }}</td><th>Plazo</th><td>{{ pedido.proveedor.plazo_entrega_dias }} días</td></tr>
+</table>
+<table class="table table-bordered table-sm">
+  <thead class="table-light"><tr><th>Código</th><th>Producto</th><th>Presentación</th><th class="text-end">Cantidad solicitada</th></tr></thead>
+  <tbody>{% for i in items %}<tr><td>{{ i.producto.codigo }}</td><td>{{ i.producto.nombre }}</td><td>{{ i.producto.presentacion }}</td><td class="text-end">{{ i.cantidad_pedida }}</td></tr>{% endfor %}</tbody>
+</table>
+{% if pedido.observacion %}<p class="small"><strong>Observaciones:</strong> {{ pedido.observacion }}</p>{% endif %}
+<div class="d-flex justify-content-between">
+  <div class="firma">Solicitó: {{ pedido.creado_por.nombre_completo }}</div>
+  <div class="firma">Autorizó (Q.F.){% if pedido.aprobado_por %}: {{ pedido.aprobado_por.nombre_completo }}{% endif %}</div>
+</div>
+{% endblock %}

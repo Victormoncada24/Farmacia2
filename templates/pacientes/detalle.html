@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div><h3 class="mb-0">{{ paciente.nombre_completo }}</h3><div class="text-muted">{{ paciente.get_tipo_documento_display }}: {{ paciente.documento }} · {{ paciente.get_prevision_display }}{% if paciente.edad != None %} · {{ paciente.edad }} años{% endif %}</div></div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if perm.dispensar %}<a class="btn btn-danger" href="{% url 'dispensacion:receta_crear' paciente.pk %}"><i class="bi bi-file-medical"></i> Registrar receta</a>{% endif %}
+    {% if perm.gestionar_pacientes %}<a class="btn btn-outline-primary" href="{% url 'pacientes:editar' paciente.pk %}"><i class="bi bi-pencil"></i> Editar</a>
+    <a class="btn btn-outline-danger" href="{% url 'pacientes:inscripcion_crear' paciente.pk %}"><i class="bi bi-heart-pulse"></i> Inscribir en programa</a>{% endif %}
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header fw-bold">Datos de contacto (cifrados)</div><div class="card-body">
+    <dl class="mb-0"><dt>Teléfono</dt><dd>{{ paciente.telefono|default:"—" }}</dd><dt>Dirección</dt><dd>{{ paciente.direccion|default:"—" }}</dd><dt>Correo</dt><dd>{{ paciente.email|default:"—" }}</dd>
+    <dt>Estado</dt><dd>{% if paciente.activo %}<span class="badge text-bg-success">Activo</span>{% else %}<span class="badge text-bg-secondary">Inactivo</span>{% endif %}</dd></dl></div></div></div>
+  <div class="col-lg-8"><div class="card h-100"><div class="card-header fw-bold">Programas de salud</div>
+    <div class="table-responsive"><table class="table table-sm mb-0 align-middle"><thead class="table-light"><tr><th>Programa</th><th>Inicio</th><th>Estado</th><th></th></tr></thead><tbody>
+    {% for i in inscripciones %}<tr><td>{{ i.programa }}</td><td>{{ i.fecha_inicio|date:"d/m/Y" }}</td><td>{% if i.activo %}<span class="badge text-bg-success">Vigente</span>{% else %}<span class="badge text-bg-secondary">Cerrada {{ i.fecha_termino|date:"d/m/Y" }}</span>{% endif %}</td>
+    <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'pacientes:inscripcion_detalle' i.pk %}">Cuotas</a></td></tr>
+    {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Sin inscripciones. Se atiende como beneficiario estándar.</td></tr>{% endfor %}</tbody></table></div></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-header fw-bold">Recetas recientes</div>
+    <div class="table-responsive"><table class="table table-sm mb-0"><thead class="table-light"><tr><th>N°</th><th>Emisión</th><th>Estado</th><th></th></tr></thead><tbody>
+    {% for r in recetas %}<tr><td>{{ r.numero }}</td><td>{{ r.fecha_emision|date:"d/m/Y" }}</td><td>{{ r.estado_texto|insignia }}</td>
+    <td class="text-end">{% if perm.ver_dispensaciones %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'dispensacion:receta_detalle' r.pk %}">Ver</a>{% endif %}
+    {% if perm.dispensar and r.dispensable %}<a class="btn btn-sm btn-danger" href="{% url 'dispensacion:dispensar' r.pk %}">Dispensar</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Sin recetas.</td></tr>{% endfor %}</tbody></table></div></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-header fw-bold">Últimas entregas</div>
+    <div class="table-responsive"><table class="table table-sm mb-0"><thead class="table-light"><tr><th>N°</th><th>Fecha</th><th>Retira</th><th></th></tr></thead><tbody>
+    {% for d in dispensaciones %}<tr><td>{{ d.pk }}</td><td>{{ d.fecha|date:"d/m/Y H:i" }}</td><td>{{ d.quien_retira }}</td><td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'dispensacion:detalle' d.pk %}">Ver</a></td></tr>
+    {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Sin entregas.</td></tr>{% endfor %}</tbody></table></div></div></div>
+</div>
+{% endblock %}

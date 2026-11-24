@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-3 gap-2">
+  <div><h3 class="mb-0"><i class="bi bi-person-heart text-danger"></i> {{ titulo }}</h3>
+    <div class="text-muted small">Detecta pacientes GES/AUGE y crónicos que no han retirado sus medicamentos a tiempo, para contactarlos antes de que abandonen el tratamiento.</div></div>
+  {% if perm.ver_reportes %}<div class="d-flex gap-2">
+    <a class="btn btn-danger" href="{% url 'reportes:informe' 'adherencia-pacientes' %}?formato=pdf"><i class="bi bi-filetype-pdf"></i> PDF</a>
+    <a class="btn btn-success" href="{% url 'reportes:informe' 'adherencia-pacientes' %}?formato=xlsx"><i class="bi bi-file-earmark-excel"></i> Excel</a></div>{% endif %}
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Pacientes en seguimiento</div><div class="fs-2 fw-bold">{{ resumen.total }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Al día</div><div class="fs-2 fw-bold text-success">{{ resumen.al_dia }} <span class="fs-6">({{ resumen.pct_al_dia }}%)</span></div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Atrasados / pendientes</div><div class="fs-2 fw-bold text-warning">{{ resumen.atrasados }} / {{ resumen.pendientes }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Riesgo de abandono</div><div class="fs-2 fw-bold text-danger">{{ resumen.abandono }}</div></div></div></div>
+</div>
+
+<form method="get" class="card card-body mb-3 py-2"><div class="row g-2 align-items-end">
+  {% for campo in form.visible_fields %}<div class="col-md-3"><label class="form-label small mb-0" for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}</div>{% endfor %}
+  <div class="col-auto"><button class="btn btn-danger"><i class="bi bi-funnel"></i> Aplicar</button> <a class="btn btn-outline-secondary" href="?">Restablecer</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
+  <thead class="table-light"><tr><th>Paciente</th><th>Documento</th><th>Programa</th><th>Teléfono</th><th>Último retiro</th><th class="text-end">Días sin retiro</th>
+    <th class="text-end">Pendiente del mes (u.)</th><th style="min-width:140px">Cobertura 90 días</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td>{% if perm.ver_pacientes %}<a href="{% url 'pacientes:detalle' f.paciente.pk %}">{{ f.paciente.nombre_completo }}</a>{% else %}{{ f.paciente.nombre_completo }}{% endif %}</td>
+      <td>{{ f.paciente.documento }}</td>
+      <td class="small">{{ f.programa.nombre }}</td>
+      <td class="text-nowrap">{{ f.paciente.telefono|default:"—" }}</td>
+      <td>{{ f.ultimo_retiro|date:"d/m/Y"|default:"Nunca" }}</td>
+      <td class="text-end">{% if f.dias_sin_retiro != None %}{{ f.dias_sin_retiro }}{% else %}—{% endif %}</td>
+      <td class="text-end">{{ f.unidades_pendientes_mes }}</td>
+      <td>{% if f.cobertura_pct != None %}<div class="progress" role="progressbar" style="height:14px"><div class="progress-bar {% if f.cobertura_pct >= 80 %}bg-success{% elif f.cobertura_pct >= 50 %}bg-warning{% else %}bg-danger{% endif %}" style="width:{{ f.cobertura_pct }}%">{{ f.cobertura_pct }}%</div></div>{% else %}—{% endif %}</td>
+      <td>{{ f.estado_texto|insignia }}</td>
+      <td class="text-end">{% if perm.dispensar and f.estado != 'AL_DIA' %}<a class="btn btn-sm btn-outline-danger" href="{% url 'dispensacion:nueva' %}?documento={{ f.paciente.documento }}" title="Ir a dispensar"><i class="bi bi-capsule"></i></a>{% endif %}</td>
+    </tr>
+  {% empty %}<tr><td colspan="10" class="text-center text-muted py-4">No hay pacientes en seguimiento para los filtros seleccionados.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+<p class="text-muted small mt-2"><strong>Criterios:</strong> «Pendiente» = falta retirar parte de la cuota mensual · «Atrasado» = sin retiro hace más del umbral de atraso · «Riesgo de abandono» = sin retiro hace más del umbral de abandono
+(si nunca retiró, se mide desde la inscripción) · Cobertura 90 días = % del tratamiento esperado que efectivamente retiró (tope por producto).
+Los teléfonos se almacenan cifrados y solo los ve personal autorizado.</p>
+{% endblock %}

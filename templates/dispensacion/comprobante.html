@@ -1,0 +1,21 @@
+{% extends 'core/base_imprimir.html' %}
+{% block titulo %}Comprobante de dispensación N° {{ d.pk }}{% endblock %}
+{% block doc_titulo %}COMPROBANTE DE DISPENSACIÓN{% endblock %}
+{% block doc_numero %}N° {{ d.pk }} · {{ d.fecha|date:"d/m/Y H:i" }}{% endblock %}
+{% block cuerpo %}
+<table class="table table-sm table-borderless mb-3">
+  <tr><th style="width:26%">Paciente</th><td>{{ d.paciente.nombre_completo }}</td><th style="width:16%">Documento</th><td>{{ d.paciente.documento }}</td></tr>
+  <tr><th>Previsión</th><td>{{ d.paciente.get_prevision_display }}</td><th>Programa</th><td>{{ d.programa_texto }}</td></tr>
+  <tr><th>Receta N°</th><td>{{ d.receta.numero }} ({{ d.receta.get_modalidad_display }})</td><th>Médico</th><td>{{ d.receta.medico_nombre }}</td></tr>
+  <tr><th>Retira</th><td colspan="3">{{ d.quien_retira }}</td></tr>
+</table>
+<table class="table table-bordered table-sm">
+  <thead class="table-light"><tr><th>Medicamento</th><th>Lote</th><th>Vencimiento</th><th class="text-end">Cantidad</th></tr></thead>
+  <tbody>{% for i in items %}<tr><td>{{ i.producto }}</td><td>{{ i.lote.numero_lote }}</td><td>{{ i.lote.fecha_vencimiento|date:"d/m/Y" }}</td><td class="text-end">{{ i.cantidad }}</td></tr>{% endfor %}</tbody>
+</table>
+<p class="small">Entrega gratuita en la red pública de salud. {% if d.observacion %}Obs.: {{ d.observacion }}{% endif %}</p>
+<div class="d-flex justify-content-between">
+  <div class="firma">Dispensó: {{ d.dispensado_por.nombre_completo }}</div>
+  <div class="firma">Recibí conforme{% if d.retira_tercero %} ({{ d.retiro_nombre }}){% endif %}</div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<h3 class="mb-3">{{ titulo }}</h3>
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  <div class="card mb-3"><div class="card-header fw-bold">Datos de la receta</div><div class="card-body">
+    {% include 'core/_form_campos.html' %}
+  </div></div>
+
+  <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center"><span class="fw-bold">Medicamentos prescritos</span>
+    <button type="button" class="btn btn-sm btn-outline-danger" id="agregar-item"><i class="bi bi-plus-lg"></i> Agregar medicamento</button></div>
+  <div class="card-body">
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}<div class="alert alert-danger">{{ formset.non_form_errors }}</div>{% endif %}
+    <div id="items">
+    {% for f in formset %}
+      <div class="row g-2 align-items-end mb-2 fila-item">
+        {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+        <div class="col-md-5"><label class="form-label small">Medicamento / insumo</label>{{ f.producto }}{% for e in f.producto.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-md-2"><label class="form-label small">Cantidad total</label>{{ f.cantidad_prescrita }}{% for e in f.cantidad_prescrita.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-md-4"><label class="form-label small">Indicación</label>{{ f.indicacion }}</div>
+        <div class="col-md-1 text-center">{% if f.DELETE %}<label class="form-check-label small text-danger">{{ f.DELETE }} Quitar</label>{% endif %}</div>
+      </div>
+    {% endfor %}
+    </div>
+  </div></div>
+  <button type="submit" class="btn btn-danger"><i class="bi bi-check2-circle"></i> Registrar receta</button>
+  <a class="btn btn-outline-secondary" href="{% url 'pacientes:detalle' paciente.pk %}">Cancelar</a>
+</form>
+
+<template id="plantilla-item">
+  <div class="row g-2 align-items-end mb-2 fila-item">
+    {% for h in formset.empty_form.hidden_fields %}{{ h }}{% endfor %}
+    <div class="col-md-5"><label class="form-label small">Medicamento / insumo</label>{{ formset.empty_form.producto }}</div>
+    <div class="col-md-2"><label class="form-label small">Cantidad total</label>{{ formset.empty_form.cantidad_prescrita }}</div>
+    <div class="col-md-4"><label class="form-label small">Indicación</label>{{ formset.empty_form.indicacion }}</div>
+    <div class="col-md-1 text-center"><button type="button" class="btn btn-sm btn-outline-danger quitar-nuevo"><i class="bi bi-x-lg"></i></button></div>
+  </div>
+</template>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var prefijo = 'items';
+  var total = document.getElementById('id_' + prefijo + '-TOTAL_FORMS');
+  document.getElementById('agregar-item').addEventListener('click', function () {
+    var html = document.getElementById('plantilla-item').innerHTML.replace(/__prefix__/g, total.value);
+    document.getElementById('items').insertAdjacentHTML('beforeend', html);
+    total.value = parseInt(total.value, 10) + 1;
+  });
+  document.getElementById('items').addEventListener('click', function (e) {
+    var boton = e.target.closest('.quitar-nuevo');
+    if (!boton) return;
+    var fila = boton.closest('.fila-item');
+    fila.querySelectorAll('input[type=number], input[type=text]').forEach(function (i) { i.value = ''; });
+    fila.querySelectorAll('select').forEach(function (s) { s.selectedIndex = 0; });
+    fila.style.display = 'none';
+  });
+})();
+</script>
+{% endblock %}

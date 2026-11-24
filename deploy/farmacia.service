@@ -1,0 +1,17 @@
+# /etc/systemd/system/farmacia.service
+[Unit]
+Description=Simulador de Farmacia Asistencial (gunicorn)
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/farmacia/app
+EnvironmentFile=/opt/farmacia/.env
+Environment=GUNICORN_BIND=127.0.0.1:8000
+ExecStart=/opt/farmacia/venv/bin/gunicorn config.wsgi:application -c deploy/gunicorn.conf.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

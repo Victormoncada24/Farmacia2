@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<h3 class="mb-1">Roles y permisos</h3>
+<p class="text-muted">Matriz de acceso por rol. El rol de cada persona se asigna en <a href="{% url 'accounts:usuario_lista' %}">Usuarios</a>.
+Vistas diferenciadas: el menú y las acciones visibles dependen del rol.</p>
+<div class="card"><div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0 text-center">
+  <thead class="table-light"><tr><th class="text-start">Funcionalidad</th>{% for codigo, nombre in roles %}<th>{{ nombre }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for fila in matriz %}
+    <tr><td class="text-start">{{ fila.descripcion }}</td>
+    {% for codigo, nombre in roles %}<td>{% if fila.roles|clave:codigo %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<span class="text-muted">—</span>{% endif %}</td>{% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody></table></div></div>
+{% endblock %}

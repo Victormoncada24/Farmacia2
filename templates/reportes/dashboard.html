@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div><h3 class="mb-0">Dashboard</h3><div class="text-muted small">Indicadores en tiempo real · actualizado <span id="actualizado">—</span> (se refresca cada 30 s)</div></div>
+  <button class="btn btn-outline-danger btn-sm" id="btn-refrescar"><i class="bi bi-arrow-repeat"></i> Actualizar</button>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Productos activos</div><div class="fs-2 fw-bold" id="k-productos">–</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Unidades disponibles</div><div class="fs-2 fw-bold" id="k-unidades">–</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Quiebres / stock crítico</div><div class="fs-2 fw-bold text-danger" id="k-criticos">–</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Lotes por vencer / vencidos</div><div class="fs-2 fw-bold text-warning"><span id="k-por-vencer">–</span> / <span class="text-danger" id="k-vencidos">–</span></div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Dispensaciones hoy</div><div class="fs-2 fw-bold" id="k-hoy">–</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Dispensaciones del mes</div><div class="fs-2 fw-bold" id="k-mes">–</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Recetas atendidas (mes)</div><div class="fs-2 fw-bold" id="k-recetas">–</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi"><div class="card-body"><div class="small text-muted">Pacientes en programas</div><div class="fs-2 fw-bold" id="k-programas">–</div></div></div></div>
+</div>
+
+{% if perm.ver_analitica %}
+<div class="row g-3 mb-3">
+  <div class="col-12"><div class="small text-uppercase text-muted fw-bold"><i class="bi bi-stars text-danger"></i> Inteligencia de abastecimiento y adherencia</div></div>
+  <div class="col-6 col-lg-3"><a href="{% url 'analitica:abastecimiento' %}" class="text-decoration-none text-body"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Quiebres proyectados</div><div class="fs-2 fw-bold text-danger" id="k-quiebres">–</div></div></div></a></div>
+  <div class="col-6 col-lg-3"><a href="{% url 'analitica:abastecimiento' %}" class="text-decoration-none text-body"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Unidades en riesgo de vencer</div><div class="fs-2 fw-bold text-warning" id="k-riesgo">–</div></div></div></a></div>
+  <div class="col-6 col-lg-3"><a href="{% url 'analitica:adherencia' %}" class="text-decoration-none text-body"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Pacientes atrasados</div><div class="fs-2 fw-bold text-warning" id="k-atrasados">–</div></div></div></a></div>
+  <div class="col-6 col-lg-3"><a href="{% url 'analitica:adherencia' %}" class="text-decoration-none text-body"><div class="card kpi kpi-alerta"><div class="card-body"><div class="small text-muted">Riesgo de abandono</div><div class="fs-2 fw-bold text-danger" id="k-abandono">–</div></div></div></a></div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-7"><div class="card h-100"><div class="card-header fw-bold">Stock por categoría (unidades)</div><div class="card-body"><canvas id="g-stock" height="130"></canvas></div></div></div>
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header fw-bold">Dispensaciones por programa (mes)</div><div class="card-body"><canvas id="g-programa" height="180"></canvas></div></div></div>
+  <div class="col-lg-7"><div class="card h-100"><div class="card-header fw-bold">Dispensaciones últimos 14 días</div><div class="card-body"><canvas id="g-dias" height="120"></canvas></div></div></div>
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header fw-bold">Productos más solicitados (30 días)</div><div class="card-body"><canvas id="g-top" height="180"></canvas></div></div></div>
+</div>
+
+<div class="card"><div class="card-header d-flex justify-content-between"><span class="fw-bold">Alertas abiertas más recientes</span>
+  {% if perm.ver_alertas %}<a href="{% url 'alertas:lista' %}" class="small">Ver todas</a>{% endif %}</div>
+  <ul class="list-group list-group-flush" id="lista-alertas"><li class="list-group-item text-muted">Cargando…</li></ul></div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  var URL = "{% url 'reportes:api_dashboard' %}";
+  var colores = ['#c8102e','#58595b','#e4002b','#8c8c8c','#f2a900','#2d7d9a','#5b8c5a','#9b59b6','#d35400','#7f8c8d'];
+  var graficos = {};
+
+  function poner(id, valor) { document.getElementById(id).textContent = valor; }
+  function grafico(id, tipo, datos, opciones) {
+    var cfg = { labels: datos.labels, datasets: [{ data: datos.valores, backgroundColor: tipo === 'line' ? 'rgba(200,16,46,.15)' : colores,
+                borderColor: '#c8102e', fill: tipo === 'line', tension: .3 }] };
+    if (graficos[id]) { graficos[id].data = cfg; graficos[id].update(); return; }
+    graficos[id] = new Chart(document.getElementById(id), { type: tipo, data: cfg, options: Object.assign({
+      responsive: true, plugins: { legend: { display: tipo === 'doughnut' } } }, opciones || {}) });
+  }
+
+  function cargar() {
+    fetch(URL, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+      var k = d.kpis;
+      poner('k-productos', k.productos); poner('k-unidades', k.unidades.toLocaleString('es-CL'));
+      poner('k-criticos', k.criticos); poner('k-por-vencer', k.por_vencer); poner('k-vencidos', k.vencidos);
+      poner('k-hoy', k.dispensaciones_hoy); poner('k-mes', k.dispensaciones_mes);
+      poner('k-recetas', k.recetas_mes); poner('k-programas', k.pacientes_programa);
+      poner('actualizado', d.actualizado);
+      if (d.inteligencia) {
+        poner('k-quiebres', d.inteligencia.quiebres); poner('k-riesgo', d.inteligencia.en_riesgo);
+        poner('k-atrasados', d.inteligencia.atrasados); poner('k-abandono', d.inteligencia.abandono);
+      }
+      grafico('g-stock', 'bar', d.stock_categoria);
+      grafico('g-programa', 'doughnut', d.por_programa);
+      grafico('g-dias', 'line', d.dispensaciones_dia, { scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } });
+      grafico('g-top', 'bar', d.top_productos, { indexAxis: 'y' });
+      var ul = document.getElementById('lista-alertas'); ul.innerHTML = '';
+      if (!d.alertas.length) { ul.innerHTML = '<li class="list-group-item text-success"><i class="bi bi-check-circle"></i> Sin alertas abiertas.</li>'; }
+      d.alertas.forEach(function (a) {
+        var li = document.createElement('li'); li.className = 'list-group-item d-flex gap-2 align-items-start';
+        var b = document.createElement('span'); b.className = 'badge text-bg-' + (a.severidad === 'Alta' ? 'danger' : 'warning'); b.textContent = a.severidad;
+        var t = document.createElement('span'); t.textContent = a.mensaje;
+        var f = document.createElement('small'); f.className = 'ms-auto text-muted text-nowrap'; f.textContent = a.fecha;
+        li.appendChild(b); li.appendChild(t); li.appendChild(f); ul.appendChild(li);
+      });
+    });
+  }
+  // El refresco automático se pausa si no hay actividad del usuario, para no impedir el
+  // cierre de sesión por inactividad (la sesión expira a los 30 minutos sin uso).
+  var ultimaActividad = Date.now();
+  ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(function (ev) {
+    document.addEventListener(ev, function () { ultimaActividad = Date.now(); }, { passive: true });
+  });
+  document.getElementById('btn-refrescar').addEventListener('click', cargar);
+  cargar();
+  setInterval(function () {
+    if (Date.now() - ultimaActividad < 10 * 60 * 1000) { cargar(); }
+  }, 30000);
+})();
+</script>
+{% endblock %}

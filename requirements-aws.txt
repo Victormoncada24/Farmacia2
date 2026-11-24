@@ -1,0 +1,4 @@
+-r requirements.txt
+# Almacenamiento de recetas escaneadas en S3 (opcional)
+django-storages[s3]>=1.14
+boto3>=1.34

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<h3 class="mb-1">Reportes exportables</h3>
+<p class="text-muted">Cada informe se puede visualizar en pantalla y exportar a <strong>PDF</strong> o <strong>Excel</strong> como respaldo administrativo. Las exportaciones quedan registradas en la auditoría.</p>
+<div class="row g-3">
+{% for i in informes %}
+  <div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body d-flex flex-column">
+    <h6 class="fw-bold">{{ i.titulo }}</h6><p class="small text-muted flex-grow-1">{{ i.descripcion }}</p>
+    <a class="btn btn-outline-danger btn-sm align-self-start" href="{% url 'reportes:informe' i.slug %}"><i class="bi bi-table"></i> Abrir informe</a>
+  </div></div></div>
+{% endfor %}
+</div>
+{% endblock %}

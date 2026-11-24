@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<h3 class="mb-3">Mi perfil</h3>
+<div class="card" style="max-width:640px"><div class="card-body">
+  <dl class="row mb-0">
+    <dt class="col-sm-4">Usuario</dt><dd class="col-sm-8">{{ user.username }}</dd>
+    <dt class="col-sm-4">Nombre</dt><dd class="col-sm-8">{{ user.get_full_name }}</dd>
+    <dt class="col-sm-4">RUT</dt><dd class="col-sm-8">{{ user.rut }}</dd>
+    <dt class="col-sm-4">Correo</dt><dd class="col-sm-8">{{ user.email }}</dd>
+    <dt class="col-sm-4">Teléfono</dt><dd class="col-sm-8">{{ user.telefono|default:"—" }}</dd>
+    <dt class="col-sm-4">Rol</dt><dd class="col-sm-8"><span class="badge text-bg-danger">{{ user.get_rol_display }}</span></dd>
+    <dt class="col-sm-4">Último ingreso</dt><dd class="col-sm-8">{{ user.last_login|date:"d/m/Y H:i" }}</dd>
+  </dl>
+  <a class="btn btn-outline-danger mt-3" href="{% url 'accounts:cambiar_clave' %}"><i class="bi bi-key"></i> Cambiar contraseña</a>
+</div></div>
+{% endblock %}

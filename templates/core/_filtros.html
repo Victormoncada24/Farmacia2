@@ -1,0 +1,17 @@
+{% if filtro %}
+<form method="get" class="card card-body mb-3 py-2">
+  <div class="row g-2 align-items-end">
+    {% for campo in filtro.visible_fields %}
+      <div class="{% if campo.name == 'q' %}col-md-3{% else %}col-md-2{% endif %}">
+        {% if campo.widget_type == 'checkbox' %}
+          <div class="form-check mt-4">{{ campo }} <label class="form-check-label small" for="{{ campo.id_for_label }}">{{ campo.label }}</label></div>
+        {% else %}
+          <label class="form-label small mb-0" for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}
+        {% endif %}
+      </div>
+    {% endfor %}
+    <div class="col-auto"><button class="btn btn-danger" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
+      <a class="btn btn-outline-secondary" href="?">Limpiar</a></div>
+  </div>
+</form>
+{% endif %}

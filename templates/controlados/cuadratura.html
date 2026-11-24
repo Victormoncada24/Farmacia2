@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-3 gap-2">
+  <div><h3 class="mb-0">{{ titulo }}</h3><div class="text-muted small">Compara el saldo del libro digital con el stock físico registrado y con los conteos del Químico Farmacéutico.</div></div>
+  {% if perm.autorizar %}<a class="btn btn-danger" href="{% url 'controlados:conteo_nuevo' %}"><i class="bi bi-plus-lg"></i> Registrar conteo físico</a>{% endif %}
+</div>
+<div class="card mb-4"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead class="table-light"><tr><th>Producto</th><th>Control</th><th class="text-end">Saldo libro</th><th class="text-end">Stock sistema</th><th class="text-end">Diferencia</th><th>Último conteo</th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td>{{ f.producto }}</td><td>{{ f.producto.get_control_display }}</td>
+      <td class="text-end">{{ f.libro }}</td><td class="text-end">{{ f.sistema }}</td>
+      <td class="text-end">{% if f.diferencia %}<span class="badge text-bg-danger">{{ f.diferencia }}</span>{% else %}<span class="badge text-bg-success">Cuadra</span>{% endif %}</td>
+      <td>{% if f.ultimo_conteo %}{{ f.ultimo_conteo.fecha|date:"d/m/Y H:i" }} — contado {{ f.ultimo_conteo.cantidad_contada }}{% else %}<span class="text-muted">Sin conteos</span>{% endif %}</td>
+    </tr>
+  {% empty %}<tr><td colspan="6" class="text-center text-muted py-3">No hay productos controlados registrados.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+
+<h5>Conteos físicos recientes</h5>
+<div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead class="table-light"><tr><th>Fecha</th><th>Producto</th><th class="text-end">Contado</th><th class="text-end">Libro</th><th class="text-end">Diferencia</th><th>Estado</th><th>Registró</th><th></th></tr></thead>
+  <tbody>
+  {% for c in conteos %}
+    <tr><td>{{ c.fecha|date:"d/m/Y H:i" }}</td><td>{{ c.producto.nombre }}</td><td class="text-end">{{ c.cantidad_contada }}</td><td class="text-end">{{ c.saldo_libro }}</td>
+    <td class="text-end">{{ c.diferencia }}</td>
+    <td>{% if c.diferencia == 0 %}<span class="badge text-bg-success">Cuadra</span>{% elif c.resuelto %}<span class="badge text-bg-secondary">Regularizado</span>{% else %}<span class="badge text-bg-danger">Descuadre</span>{% endif %}</td>
+    <td>{{ c.registrado_por.username }}</td>
+    <td class="text-end">{% if perm.autorizar and c.diferencia != 0 and not c.resuelto %}<a class="btn btn-sm btn-outline-danger" href="{% url 'controlados:conteo_resolver' c.pk %}">Regularizar</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="8" class="text-center text-muted py-3">Aún no hay conteos.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endblock %}

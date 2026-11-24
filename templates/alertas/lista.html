@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-3 gap-2">
+  <div><h3 class="mb-0">{{ titulo }}</h3><div class="text-muted small">{{ subtitulo }}</div></div>
+  <form method="post" action="{% url 'alertas:recalcular' %}">{% csrf_token %}<button class="btn btn-outline-danger"><i class="bi bi-arrow-repeat"></i> Recalcular ahora</button></form>
+</div>
+{% include 'core/_filtros.html' %}
+<div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead class="table-light"><tr><th>Generada</th><th>Severidad</th><th>Tipo</th><th>Mensaje</th><th class="text-end">Acción</th></tr></thead>
+  <tbody>
+  {% for a in object_list %}
+    <tr class="{% if a.resuelta %}text-muted{% endif %}">
+      <td class="text-nowrap">{{ a|valor:'creada_en' }}</td>
+      <td>{{ a.severidad_texto|insignia }}</td>
+      <td>{{ a.get_tipo_display }}</td>
+      <td>{{ a.mensaje }}</td>
+      <td class="text-end text-nowrap">
+        {% if a.resuelta %}<span class="badge text-bg-success">Resuelta</span>
+        {% elif a.es_automatica %}<span class="small text-muted">Se cierra al corregir la causa</span>
+        {% else %}<form method="post" action="{% url 'alertas:resolver' a.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-outline-success">Marcar resuelta</button></form>{% endif %}
+      </td>
+    </tr>
+  {% empty %}<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-check-circle text-success"></i> Sin alertas para los filtros seleccionados.</td></tr>
+  {% endfor %}
+  </tbody></table></div></div>
+{% include 'core/_paginacion.html' %}
+{% endblock %}

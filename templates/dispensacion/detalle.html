@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div><h3 class="mb-0">Dispensación N° {{ d.pk }}</h3><div class="text-muted">{{ d.fecha|date:"d/m/Y H:i" }} · {{ d.paciente.nombre_completo }} ({{ d.paciente.documento }})</div></div>
+  <div class="d-flex gap-2"><a class="btn btn-danger" target="_blank" href="{% url 'dispensacion:comprobante' d.pk %}"><i class="bi bi-printer"></i> Imprimir comprobante</a>
+    <a class="btn btn-outline-secondary" href="{% url 'dispensacion:historial' %}">Historial</a></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-body"><dl class="row mb-0">
+    <dt class="col-5">Receta</dt><dd class="col-7"><a href="{% url 'dispensacion:receta_detalle' d.receta.pk %}">{{ d.receta.numero }}</a></dd>
+    <dt class="col-5">Programa</dt><dd class="col-7">{{ d.programa_texto }}</dd>
+    <dt class="col-5">Retira</dt><dd class="col-7">{{ d.quien_retira }}</dd>
+    <dt class="col-5">Dispensó</dt><dd class="col-7">{{ d.dispensado_por.nombre_completo }}</dd>
+    {% if d.excepcion_cuota %}<dt class="col-5">Excepción</dt><dd class="col-7">Autorizada por {{ d.autorizado_por.nombre_completo }}</dd>{% endif %}
+    <dt class="col-5">Observación</dt><dd class="col-7">{{ d.observacion|default:"—" }}</dd></dl></div></div></div>
+  <div class="col-lg-7"><div class="card"><div class="card-header fw-bold">Detalle entregado (por lote)</div><div class="table-responsive"><table class="table table-sm mb-0">
+    <thead class="table-light"><tr><th>Producto</th><th>Lote</th><th>Vence</th><th class="text-end">Cantidad</th></tr></thead><tbody>
+    {% for i in items %}<tr><td>{{ i.producto }}</td><td>{{ i.lote.numero_lote }}</td><td>{{ i.lote.fecha_vencimiento|date:"d/m/Y" }}</td><td class="text-end">{{ i.cantidad }}</td></tr>{% endfor %}
+  </tbody></table></div></div></div>
+</div>
+{% endblock %}

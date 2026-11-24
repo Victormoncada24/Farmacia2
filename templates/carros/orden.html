@@ -1,0 +1,19 @@
+{% extends 'core/base_imprimir.html' %}
+{% block titulo %}Orden de reposición N° {{ solicitud.pk }}{% endblock %}
+{% block doc_titulo %}ORDEN DE REPOSICIÓN{% endblock %}
+{% block doc_numero %}N° {{ solicitud.pk }} · {{ solicitud.creada_en|date:"d/m/Y H:i" }}{% endblock %}
+{% block cuerpo %}
+<table class="table table-sm table-borderless mb-3">
+  <tr><th style="width:22%">Carro</th><td>{{ solicitud.carro.nombre }} ({{ solicitud.carro.tipo_texto }})</td><th style="width:16%">Servicio</th><td>{{ solicitud.carro.ubicacion|default:"—" }}</td></tr>
+  <tr><th>Solicitante</th><td>{{ solicitud.solicitante.nombre_completo }}</td><th>Estado</th><td>{{ solicitud.estado_texto }}</td></tr>
+  {% if solicitud.observacion %}<tr><th>Observación</th><td colspan="3">{{ solicitud.observacion }}</td></tr>{% endif %}
+</table>
+<table class="table table-bordered table-sm">
+  <thead class="table-light"><tr><th>Producto</th><th class="text-end">Solicitado</th><th class="text-end">Entregado</th></tr></thead>
+  <tbody>{% for d in detalles %}<tr><td>{{ d.producto }}</td><td class="text-end">{{ d.cantidad_solicitada }}</td><td class="text-end">{% if solicitud.estado == 'PENDIENTE' %}&nbsp;{% else %}{{ d.cantidad_entregada }}{% endif %}</td></tr>{% endfor %}</tbody>
+</table>
+<div class="d-flex justify-content-between">
+  <div class="firma">Solicitante</div>
+  <div class="firma">Farmacia{% if solicitud.atendida_por %}: {{ solicitud.atendida_por.nombre_completo }}{% endif %}</div>
+</div>
+{% endblock %}

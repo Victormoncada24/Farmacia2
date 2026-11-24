@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div><h3 class="mb-0">{{ carro.nombre }} {{ carro.tipo_texto|insignia }}</h3>
+    <div class="text-muted">{{ carro.ubicacion|default:"Sin ubicación" }} · Responsable: {{ carro.responsable|default:"—" }} · Precinto: {{ carro.precinto|default:"—" }}
+    {% if not carro.activo %}· <span class="badge text-bg-secondary">Inactivo</span>{% endif %}</div></div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if perm.gestionar_carros %}<a class="btn btn-danger" href="{% url 'carros:reponer' carro.pk %}"><i class="bi bi-arrow-repeat"></i> Reposición con conteo</a>{% endif %}
+    {% if perm.solicitar_reposicion %}<a class="btn btn-outline-danger" href="{% url 'carros:solicitar' carro.pk %}"><i class="bi bi-send"></i> Solicitar reposición</a>{% endif %}
+    {% if perm.registrar_consumo %}<a class="btn btn-outline-secondary" href="{% url 'carros:consumo' carro.pk %}"><i class="bi bi-dash-circle"></i> Registrar consumo</a>{% endif %}
+    {% if perm.configurar_carros %}<a class="btn btn-outline-primary" href="{% url 'carros:item_crear' carro.pk %}"><i class="bi bi-plus-lg"></i> Agregar producto</a>{% endif %}
+  </div>
+</div>
+<div class="card mb-4"><div class="card-header fw-bold">Contenido y dotación</div><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead class="table-light"><tr><th>Producto</th><th class="text-end">Dotación</th><th class="text-end">Actual</th><th class="text-end">Faltante</th><th>Vencimiento más próximo</th><th>Estado</th><th></th></tr></thead><tbody>
+  {% for i in items %}<tr><td>{{ i.producto }}</td><td class="text-end">{{ i.cantidad_requerida }}</td><td class="text-end">{{ i.cantidad_actual }}</td><td class="text-end">{{ i.faltante }}</td>
+    <td>{{ i.fecha_vencimiento|date:"d/m/Y"|default:"—" }}</td><td>{{ i.estado|insignia }}</td>
+    <td class="text-end text-nowrap">{% if perm.configurar_carros %}<a class="btn btn-sm btn-outline-primary" href="{% url 'carros:item_editar' i.pk %}"><i class="bi bi-pencil"></i></a>
+    <form class="d-inline" method="post" action="{% url 'carros:item_eliminar' i.pk %}" onsubmit="return confirm('¿Retirar de la dotación?')">{% csrf_token %}<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7" class="text-center text-muted py-3">Este carro aún no tiene dotación definida.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header fw-bold">Últimas reposiciones</div><ul class="list-group list-group-flush">
+    {% for r in reposiciones %}<li class="list-group-item small">{{ r.fecha|date:"d/m/Y H:i" }} — {{ r.realizada_por.username }}</li>{% empty %}<li class="list-group-item text-muted small">Sin reposiciones.</li>{% endfor %}</ul></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header fw-bold">Últimos consumos</div><ul class="list-group list-group-flush">
+    {% for c in consumos %}<li class="list-group-item small">{{ c.fecha|date:"d/m/Y H:i" }} — {{ c.producto.nombre }} × {{ c.cantidad }} ({{ c.registrado_por.username }})</li>{% empty %}<li class="list-group-item text-muted small">Sin consumos.</li>{% endfor %}</ul></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header fw-bold">Solicitudes recientes</div><ul class="list-group list-group-flush">
+    {% for s in solicitudes %}<li class="list-group-item small"><a href="{% url 'carros:solicitud_detalle' s.pk %}">N° {{ s.pk }}</a> — {{ s.creada_en|date:"d/m H:i" }} — {{ s.estado_texto|insignia }}</li>{% empty %}<li class="list-group-item text-muted small">Sin solicitudes.</li>{% endfor %}</ul></div></div>
+</div>
+{% endblock %}

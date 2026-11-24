@@ -1,0 +1,17 @@
+:root { --inacap-rojo: #c8102e; --inacap-gris: #58595b; }
+body { background: #f5f6f8; }
+.topbar { background: var(--inacap-gris); border-bottom: 4px solid var(--inacap-rojo); min-height: 56px; }
+.logo-cuadro { display: inline-block; width: 22px; height: 22px; background: #e4002b; }
+.sidebar { width: 260px; min-width: 260px; background: #fff; border-right: 1px solid #ddd; min-height: calc(100vh - 56px); }
+.sidebar .nav-link { color: #333; padding: .45rem 1.1rem; font-size: .92rem; }
+.sidebar .nav-link i { width: 1.4rem; display: inline-block; color: var(--inacap-rojo); }
+.sidebar .nav-link:hover { background: #f3f3f3; }
+.sidebar .nav-link.active { background: #fbe9ec; font-weight: 600; border-left: 4px solid var(--inacap-rojo); }
+.nav-header { text-transform: uppercase; font-size: .7rem; letter-spacing: .06em; color: #888; padding: .9rem 1.1rem .2rem; list-style: none; }
+.contenido { min-width: 0; }
+.kpi { border: 0; border-left: 4px solid var(--inacap-gris); box-shadow: 0 1px 3px #0001; }
+.kpi-alerta { border-left-color: var(--inacap-rojo); }
+.btn-danger, .btn-danger:hover { --bs-btn-bg: var(--inacap-rojo); --bs-btn-border-color: var(--inacap-rojo); --bs-btn-hover-bg: #a30d25; --bs-btn-hover-border-color: #a30d25; }
+.login-fondo { background: linear-gradient(135deg, #f5f6f8 60%, #fbe9ec); }
+.table th { white-space: nowrap; }
+@media (max-width: 991.98px) { .sidebar { width: 280px; } }

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<div class="row"><div class="col-xl-9">
+  <h3 class="mb-3">{{ titulo }}</h3>
+  {% if ayuda %}<div class="alert alert-info py-2"><i class="bi bi-info-circle"></i> {{ ayuda }}</div>{% endif %}
+  <div class="card"><div class="card-body">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% include 'core/_form_campos.html' %}
+      <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-danger"><i class="bi bi-check2-circle"></i> Guardar</button>
+        <a class="btn btn-outline-secondary" href="{{ url_cancelar }}">Cancelar</a>
+      </div>
+    </form>
+  </div></div>
+</div></div>
+{% endblock %}

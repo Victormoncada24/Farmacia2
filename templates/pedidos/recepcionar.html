@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<h3 class="mb-1">{{ titulo }}</h3>
+<div class="text-muted mb-3">{{ pedido.proveedor.nombre }} · Indique solo lo que llegó hoy; el resto queda pendiente. Cada línea ingresa al inventario con su lote y vencimiento.</div>
+{% if form.non_field_errors %}<div class="alert alert-danger"><i class="bi bi-exclamation-octagon"></i> {{ form.non_field_errors }}</div>{% endif %}
+<form method="post" novalidate>{% csrf_token %}
+  <div class="card mb-3"><div class="card-body"><div class="row g-3">
+    <div class="col-md-4"><label class="form-label">{{ form.documento_ref.label }} <span class="text-danger">*</span></label>{{ form.documento_ref }}{% for e in form.documento_ref.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+    <div class="col-md-3"><label class="form-label">{{ form.ubicacion.label }}</label>{{ form.ubicacion }}</div>
+    <div class="col-md-5"><label class="form-label">{{ form.observacion.label }}</label>{{ form.observacion }}</div>
+  </div></div></div>
+
+  <div class="card mb-3"><div class="card-header fw-bold">Mercadería recibida</div><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead class="table-light"><tr><th>Producto</th><th class="text-end">Pedido</th><th class="text-end">Ya recibido</th><th class="text-end">Pendiente</th><th>Cantidad recibida</th><th>N° de lote</th><th>Vencimiento</th></tr></thead><tbody>
+    {% for fila in form.filas %}
+    <tr>
+      <td>{{ fila.item.producto }} {% if fila.item.producto.es_controlado %}<span class="badge text-bg-danger">Controlado</span>{% endif %}</td>
+      <td class="text-end">{{ fila.item.cantidad_pedida }}</td><td class="text-end">{{ fila.item.cantidad_recibida }}</td><td class="text-end fw-bold">{{ fila.item.pendiente }}</td>
+      <td>{{ fila.cant }}{% for e in fila.cant.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+      <td>{{ fila.lote }}{% for e in fila.lote.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+      <td>{{ fila.venc }}{% for e in fila.venc.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td>
+    </tr>
+    {% endfor %}
+  </tbody></table></div></div>
+  <p class="small text-muted">Si una entrega trae dos lotes del mismo producto, registre dos recepciones. Los medicamentos controlados quedan anotados automáticamente en el libro digital.</p>
+  <button class="btn btn-danger btn-lg"><i class="bi bi-check2-circle"></i> Confirmar recepción</button>
+  <a class="btn btn-outline-secondary btn-lg" href="{% url 'pedidos:detalle' pedido.pk %}">Cancelar</a>
+</form>
+{% endblock %}
